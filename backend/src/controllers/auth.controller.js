@@ -1,6 +1,7 @@
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
+import cloudinary from "../lib/cloudinary.js";
 export const signup = async (req, res) => {
   const { fullName, email, password } = req.body;
   try {
@@ -44,10 +45,10 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "Invalid Credentials" });
-      const isPasswordCorrect = await bcrypt.compare(password, User.password);
-      if (!isPasswordCorrect) {
-        return res.status(400).json({ message: "Invalid Credentials" });
-      }
+    }
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid Credentials" });
     }
     generateToken(user._id, res);
     res.status(200).json({
@@ -67,6 +68,35 @@ export const logout = (req, res) => {
     res.status(200).json({ message: "Logged Out Successfully" });
   } catch (error) {
     console.log("Error in Logout Control", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+export const updateProfile = async (res, req) => {
+  try {
+    const { profilePic } = req.body;
+    const userId = req.user._id;
+    if (!profilePic) {
+      return res.status(400).json({ message: "Profile Picture Required" });
+    }
+    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const updateUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        profilePic: uploadResponse.secure_url,
+      },
+      { new: true }
+    );
+    res.status(200).json(updateUser);
+  } catch (error) {
+    console.log("Error in Update Profile", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+export const checkAuth = async (res, req) => {
+  try {
+    res.status(200).json(req.user);
+  } catch (error) {
+    console.log("Error in CheckAuth Controller", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
