@@ -44,7 +44,7 @@ function SignupPage() {
     e.preventDefault();
     const success = validateForm();
     if (success === true) {
-      signup(formData)
+      signup(formData);
     }
   };
   return (
